@@ -18,7 +18,7 @@ def get_vlan_id(ctx, vlan):
 
 def get_vlan_ip_address(ctx, vlan):
     cfg, _ = ctx
-    _, vlan_ip_data, _ = cfg
+    _, vlan_ip_data, _, _ = cfg
     ip_address = ""
     for key in vlan_ip_data:
         if not clicommon.is_ip_prefix_in_key(key):
@@ -32,9 +32,8 @@ def get_vlan_ip_address(ctx, vlan):
 
 def get_vlan_ports(ctx, vlan):
     cfg, db = ctx
-    _, _, vlan_ports_data = cfg
+    _, _, vlan_ports_data, iface_alias_converter = cfg
     vlan_ports = []
-    iface_alias_converter = clicommon.InterfaceAliasConverter(db)
     # Here natsorting is important in relation to another
     # column which prints port tagging mode.
     # If we sort both in the same way using same keys
@@ -57,7 +56,7 @@ def get_vlan_ports(ctx, vlan):
 
 def get_vlan_ports_tagging(ctx, vlan):
     cfg, db = ctx
-    _, _, vlan_ports_data = cfg
+    _, _, vlan_ports_data, _ = cfg
     vlan_ports_tagging = []
     # Here natsorting is important in relation to another
     # column which prints vlan ports.
@@ -79,7 +78,7 @@ def get_vlan_ports_tagging(ctx, vlan):
 
 def get_proxy_arp(ctx, vlan):
     cfg, _ = ctx
-    _, vlan_ip_data, _ = cfg
+    _, vlan_ip_data, _, _ = cfg
     proxy_arp = "disabled"
     for key in vlan_ip_data:
         if clicommon.is_ip_prefix_in_key(key):
@@ -127,7 +126,8 @@ def brief(db, verbose):
     vlan_data = db.cfgdb.get_table('VLAN')
     vlan_ip_data = db.cfgdb.get_table('VLAN_INTERFACE')
     vlan_ports_data = db.cfgdb.get_table('VLAN_MEMBER')
-    vlan_cfg = (vlan_data, vlan_ip_data, vlan_ports_data)
+    iface_alias_converter = clicommon.InterfaceAliasConverter(db)
+    vlan_cfg = (vlan_data, vlan_ip_data, vlan_ports_data, iface_alias_converter)
 
     for vlan in natsorted(vlan_data):
         row = []
