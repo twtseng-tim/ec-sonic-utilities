@@ -5657,6 +5657,11 @@ def bind(ctx, interface_name, vrf_name):
     if is_interface_bind_to_vrf(config_db, interface_name) is True and \
         config_db.get_entry(table_name, interface_name).get('vrf_name') == vrf_name:
         return
+
+    is_vlan_member = config_db.keys(config_db.CONFIG_DB,'VLAN_MEMBER|*|{}'.format(interface_name))
+    if (type(is_vlan_member) == list and is_vlan_member != []) and (type(None) != type(is_vlan_member)):
+        ctx.fail("Not allow to bind to VRF since the configured interface is a VLAN member.")
+
     # Clean ip addresses if interface configured
     interface_addresses = get_interface_ipaddresses(config_db, interface_name)
     for ipaddress in interface_addresses:

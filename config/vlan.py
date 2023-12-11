@@ -233,7 +233,7 @@ def add_vlan_member(db, vid, port, untagged):
     log.log_info("'vlan member add {} {}' executing...".format(vid, port))
 
     vlan = 'Vlan{}'.format(vid)
-    
+
     config_db = ValidatedConfigDBConnector(db.cfgdb)
     if ADHOC_VALIDATION:
         if not clicommon.is_vlanid_in_range(vid):
@@ -265,7 +265,7 @@ def add_vlan_member(db, vid, port, untagged):
         if (is_port and clicommon.is_port_router_interface(db.cfgdb, port)) or \
            (not is_port and clicommon.is_pc_router_interface(db.cfgdb, port)): # TODO: MISSING CONSTRAINT IN YANG MODEL
             ctx.fail("{} is a router interface!".format(port))
-        
+
         portchannel_member_table = db.cfgdb.get_table('PORTCHANNEL_MEMBER')
 
         if (is_port and clicommon.interface_is_in_portchannel(portchannel_member_table, port)): # TODO: MISSING CONSTRAINT IN YANG MODEL
@@ -278,6 +278,13 @@ def add_vlan_member(db, vid, port, untagged):
         enable_stp_on_port(db.cfgdb, port)
 
     try:
+        appl_db = SonicV2Connector()
+        appl_db.connect(appl_db.APPL_DB)
+        entry = appl_db.get_all(appl_db.APPL_DB, 'INTF_TABLE:{}'.format(port))
+        if entry:
+            if 'vrf_name' in entry:
+                ctx.fail("Not allow to join VLAN since the configured interface is binding to VRF.")
+
         config_db.set_entry('VLAN_MEMBER', (vlan, port), {'tagging_mode': "untagged" if untagged else "tagged" })
     except ValueError:
         ctx.fail("{} invalid or does not exist, or {} invalid or does not exist".format(vlan, port))
@@ -292,7 +299,7 @@ def del_vlan_member(db, vid, port):
     ctx = click.get_current_context()
     log.log_info("'vlan member del {} {}' executing...".format(vid, port))
     vlan = 'Vlan{}'.format(vid)
-    
+
     config_db = ValidatedConfigDBConnector(db.cfgdb)
     if ADHOC_VALIDATION:
         if not clicommon.is_vlanid_in_range(vid):
