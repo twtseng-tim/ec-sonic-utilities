@@ -5432,9 +5432,6 @@ def vrf(ctx):
     config_db.connect()
     ctx.obj = {}
     ctx.obj['config_db'] = config_db
-    state_db = SonicV2Connector(host='127.0.0.1')
-    state_db.connect(state_db.STATE_DB, False)
-    ctx.obj['state_db'] = state_db
 
 @vrf.command('add')
 @click.argument('vrf_name', metavar='<vrf_name>', required=True)
@@ -5442,7 +5439,8 @@ def vrf(ctx):
 def add_vrf(ctx, vrf_name):
     """Add vrf"""
     config_db = ValidatedConfigDBConnector(ctx.obj['config_db'])
-    state_db = ctx.obj['state_db']
+    state_db = SonicV2Connector(host='127.0.0.1')
+    state_db.connect(state_db.STATE_DB, False)
 
     if not vrf_name.startswith("Vrf") and not (vrf_name == 'mgmt') and not (vrf_name == 'management'):
         ctx.fail("'vrf_name' must begin with 'Vrf' or named 'mgmt'/'management' in case of ManagementVRF.")
