@@ -119,7 +119,7 @@ class TestPortChannel(object):
         runner = CliRunner()
         db = Db()
         obj = {'db':db.cfgdb}
-        
+
         # add a portchannel with invalid fats rate
         result = runner.invoke(config.config.commands["portchannel"].commands["add"], ["PortChannel0005", "--fast-rate", fast_rate], obj=obj)
         print(result.exit_code)
@@ -442,6 +442,30 @@ class TestPortChannel(object):
         print(result.output)
         assert result.exit_code == 0
         assert result.output == ""
+
+    def test_non_mix_speed_portchannel_can_not_bind_different_speed_po(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'db':db.cfgdb}
+
+        # add a port with different speed to non mix speed portchannel
+        result = runner.invoke(config.config.commands["portchannel"].commands["member"].commands["add"], ["PortChannel1001", "Ethernet52"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Error: Port speed of Ethernet52 is different than the other members of the portchannel PortChannel1001" in result.output
+
+    def test_non_mix_speed_portchannel_member_can_not_change_po_speed(self):
+        runner = CliRunner()
+        db = Db()
+        obj = {'config_db':db.cfgdb}
+
+        # change non mix speed portchannel member port speed
+        result = runner.invoke(config.config.commands["interface"].commands["speed"], ["Ethernet116", "100000"], obj=obj)
+        print(result.exit_code)
+        print(result.output)
+        assert result.exit_code != 0
+        assert "Ethernet116 is member of PortChannel0002 which is not a mix-speed PortChannel. Configuration is not allowed!" in result.output
 
     @classmethod
     def teardown_class(cls):

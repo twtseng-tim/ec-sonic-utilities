@@ -175,7 +175,7 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "pfc_asym": "off",
-        "speed": "40000"
+        "speed": "10"
     },
     "PORT|Ethernet56": {
         "admin_status": "up",
@@ -672,35 +672,47 @@
         "members@": "Ethernet32",
         "min_links": "1",
         "tpid": "0x8100",
-        "mtu": "9100"
+        "mtu": "9100",
+        "lacp_key": "auto",
+        "fast_rate": "false"
     },
     "PORTCHANNEL|PortChannel0001": {
         "admin_status": "up",
         "members@": "Ethernet112",
         "min_links": "1",
         "tpid": "0x8100",
-        "mtu": "9100"
+        "mtu": "9100",
+        "lacp_key": "123",
+        "fast_rate": "false"
     },
     "PORTCHANNEL|PortChannel0002": {
         "admin_status": "up",
         "members@": "Ethernet116",
         "min_links": "1",
         "tpid": "0x8100",
-        "mtu": "9100"
+        "mtu": "9100",
+        "lacp_key": "auto",
+        "fast_rate": "false",
+        "mix_speed": "false"
     },
     "PORTCHANNEL|PortChannel0003": {
         "admin_status": "up",
         "members@": "Ethernet120",
         "min_links": "1",
         "tpid": "0x8100",
-        "mtu": "9100"
+        "mtu": "9100",
+        "static": "true",
+        "fast_rate": "false"
     },
     "PORTCHANNEL|PortChannel0004": {
         "admin_status": "up",
         "members@": "Ethernet124",
         "min_links": "1",
         "tpid": "0x8100",
-        "mtu": "9100"
+        "mtu": "9100",
+        "lacp_key": "auto",
+        "fast_rate": "true",
+        "mix_speed": "true"
     },
     "PORTCHANNEL_MEMBER|PortChannel1001|Ethernet32": {
         "NULL": "NULL"

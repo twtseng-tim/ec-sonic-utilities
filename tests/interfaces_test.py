@@ -122,26 +122,28 @@ Ethernet1/1  ARISTA01T2  Ethernet1       None                172.16.137.56   Spi
 
 show_interfaces_portchannel_output="""\
 Flags: A - active, I - inactive, Up - up, Dw - Down, N/A - not available,
-       S - selected, D - deselected, * - not synced
-  No.  Team Dev         Protocol     Ports
------  ---------------  -----------  --------------
- 0001  PortChannel0001  LACP(A)(Dw)  Ethernet112(D)
- 0002  PortChannel0002  LACP(A)(Up)  Ethernet116(S)
- 0003  PortChannel0003  LACP(A)(Up)  Ethernet120(S)
- 0004  PortChannel0004  LACP(A)(Up)  N/A
- 1001  PortChannel1001  N/A
+       S - selected, D - deselected, * - not synced,
+       M - mixed speed
+  No.  Team Dev            Protocol     Ports           Oper Key    Admin Key    Fast Rate
+-----  ------------------  -----------  --------------  ----------  -----------  -----------
+ 0001  PortChannel0001     LACP(A)(Dw)  Ethernet112(D)  123         123          false
+ 0002  PortChannel0002     LACP(A)(Up)  Ethernet116(S)  10002       auto         false
+ 0003  PortChannel0003     NONE(-)(Up)  Ethernet120(S)  N/A         N/A          N/A
+ 0004  PortChannel0004(M)  LACP(A)(Up)  N/A             N/A         auto         true
+ 1001  PortChannel1001     N/A
 """
 
 show_interfaces_portchannel_in_alias_mode_output="""\
 Flags: A - active, I - inactive, Up - up, Dw - Down, N/A - not available,
-       S - selected, D - deselected, * - not synced
-  No.  Team Dev         Protocol     Ports
------  ---------------  -----------  --------
- 0001  PortChannel0001  LACP(A)(Dw)  etp29(D)
- 0002  PortChannel0002  LACP(A)(Up)  etp30(S)
- 0003  PortChannel0003  LACP(A)(Up)  etp31(S)
- 0004  PortChannel0004  LACP(A)(Up)  N/A
- 1001  PortChannel1001  N/A
+       S - selected, D - deselected, * - not synced,
+       M - mixed speed
+  No.  Team Dev            Protocol     Ports     Oper Key    Admin Key    Fast Rate
+-----  ------------------  -----------  --------  ----------  -----------  -----------
+ 0001  PortChannel0001     LACP(A)(Dw)  etp29(D)  123         123          false
+ 0002  PortChannel0002     LACP(A)(Up)  etp30(S)  10002       auto         false
+ 0003  PortChannel0003     NONE(-)(Up)  etp31(S)  N/A         N/A          N/A
+ 0004  PortChannel0004(M)  LACP(A)(Up)  N/A       N/A         auto         true
+ 1001  PortChannel1001     N/A
 """
 
 class TestInterfaces(object):
@@ -294,7 +296,7 @@ class TestInterfaces(object):
         traceback.print_tb(result.exc_info[2])
         assert result.exit_code == 0
         assert result.output == show_interfaces_portchannel_in_alias_mode_output
-       
+
     @mock.patch('sonic_py_common.multi_asic.get_port_table', mock.MagicMock(return_value={}))
     def test_supervisor_show_interfaces_alias_etp1_with_waring(self):
         runner = CliRunner()

@@ -4851,14 +4851,18 @@ This command displays information regarding port-channel interfaces
 - Example:
   ```
   admin@sonic:~$ show interfaces portchannel
-  Flags: A - active, I - inactive, Up - up, Dw - Down, N/A - not available, S - selected, D - deselected
-    No.  Team Dev       Protocol     Ports
-  -----  -------------  -----------  ---------------------------
-     24  PortChannel24  LACP(A)(Up)  Ethernet28(S) Ethernet24(S)
-     48  PortChannel48  LACP(A)(Up)  Ethernet52(S) Ethernet48(S)
-     40  PortChannel40  LACP(A)(Up)  Ethernet44(S) Ethernet40(S)
-      0  PortChannel0   LACP(A)(Up)  Ethernet0(S) Ethernet4(S)
-      8  PortChannel8   LACP(A)(Up)  Ethernet8(S) Ethernet12(S)
+  Flags: A - active, I - inactive, Up - up, Dw - Down, N/A - not available,
+         S - selected, D - deselected, * - not synced,
+         M - mixed speed
+    No.  Team Dev         Protocol     Ports                        Oper Key  Admin Key  Fast Rate
+  -----  ---------------  -----------  ---------------------------  --------  ---------  ---------
+      0  PortChannel0     LACP(A)(Up)  Ethernet0(S) Ethernet4(S)    1         1          false
+      2  PortChannel2     NONE(-)(Up)  Ethernet2(S) Ethernet1(S)    N/A       N/A        N/A
+      5  PortChannel5     LACP(A)(Dw)  N/A                          N/A       auto       false
+      8  PortChannel8(M)  LACP(A)(Up)  Ethernet8(S) Ethernet12(S)   8         8          ture
+     24  PortChannel24    LACP(A)(Up)  Ethernet28(S) Ethernet24(S)  124       auto       false
+     40  PortChannel40    LACP(A)(Up)  Ethernet44(S) Ethernet40(S)  40        40         false
+     48  PortChannel48    LACP(A)(Up)  Ethernet52(S) Ethernet48(S)  48        48         false
   ```
 
 **show interface status**
@@ -8185,16 +8189,47 @@ This command displays all the port channels that are configured in the device an
 - Example:
   ```
   admin@sonic:~$ show interfaces portchannel
-  Flags: A - active, I - inactive, Up - up, Dw - Down, N/A - not available, S - selected, D - deselected
-    No.  Team Dev       Protocol     Ports
-  -----  -------------  -----------  ---------------------------
-     24  PortChannel24  LACP(A)(Up)  Ethernet28(S) Ethernet24(S)
-     48  PortChannel48  LACP(A)(Up)  Ethernet52(S) Ethernet48(S)
-     40  PortChannel40  LACP(A)(Up)  Ethernet44(S) Ethernet40(S)
-      0  PortChannel0   LACP(A)(Up)  Ethernet0(S) Ethernet4(S)
-      8  PortChannel8   LACP(A)(Up)  Ethernet8(S) Ethernet12(S)
+  Flags: A - active, I - inactive, Up - up, Dw - Down, N/A - not available,
+         S - selected, D - deselected, * - not synced,
+         M - mixed speed
+    No.  Team Dev         Protocol     Ports                        Oper Key  Admin Key  Fast Rate
+  -----  -------------    -----------  ---------------------------  --------  ---------  ---------
+      0  PortChannel0     LACP(A)(Up)  Ethernet0(S) Ethernet4(S)    1         1          false
+      2  PortChannel2     NONE(-)(Up)  Ethernet2(S) Ethernet1(S)    N/A       N/A        N/A
+      5  PortChannel5     LACP(A)(Dw)  N/A                          N/A       auto       false
+      8  PortChannel8(M)  LACP(A)(Up)  Ethernet8(S) Ethernet12(S)   8         8          ture
+     24  PortChannel24    LACP(A)(Up)  Ethernet28(S) Ethernet24(S)  124       auto       false
+     40  PortChannel40    LACP(A)(Up)  Ethernet44(S) Ethernet40(S)  40        40         false
+     48  PortChannel48    LACP(A)(Up)  Ethernet52(S) Ethernet48(S)  48        48         false
   ```
 
+  Protocol
+  - LACP protocol mode, active (A) or inactive(I) on the port channel.
+    - LACP(A) means LACPDU frames are sent along the configured links periodically.
+    - LACP(I) means the port channel is not in an active negotiating state. It acts as "speak when spoken to",  does respond to incoming LACP packets.
+  - The 'NONE' keyword means static port channel.
+  - The port channel state, (Up) or (Dw).
+
+  Ports
+  - S - selected, the port is already attached to the port channel and ready to transmit and receive.
+  - D - deselected,  the port is not attached to the port channel yet.
+  - \* - not synced, the port is not synchronized. It is currently not in the right aggregation.
+
+  Oper Key and Admin Key
+  - The Admin Key is specified value in "--lacp-key" option of config portchannel add command.
+  - The Oper Key is value of actually participating in the LACP protocol.
+
+  Fast Rate
+  - It is used to set the rate at which the LACP control packets are sent from partner.
+    - true means LACP fast rate mode, request partner to transmit LACPDUs every 1 second.
+    - false means LACP slow rate mode, request partner to transmit LACPDUs every 30 seconds.
+    - N/A, it is meaningless for static port channel.
+
+  Mix Speed
+  - M - Show which portchannel is in mixed speed mode.
+    - In mixed speed mode, it is allowed to combine ports with different speeds into a single port channel.
+
+  Note: If user created a port channel and set lacp-key as "auto", the "Oper Key" value will be generated automatically after first port channel member is added to port channel.
 
 ### PortChannel Config commands
 
@@ -8202,28 +8237,43 @@ This sub-section explains how to configure the portchannel and its member ports.
 
 **config portchannel**
 
-This command is used to add or delete the portchannel.
-It is recommended to use portchannel names in the format "PortChannelxxxx", where "xxxx" is number of 1 to 4 digits. Ex: "PortChannel0002".
-
-NOTE: If users specify any other name like "pc99", command will succeed, but such names are not supported. Such names are not printed properly in the "show interface portchannel" command. It is recommended not to use such names.
-
-When any port is already member of any other portchannel and if user tries to add the same port in some other portchannel (without deleting it from the current portchannel), the command fails internally. But, it does not print any error message. In such cases, remove the member from current portchannel and then add it to new portchannel.
-
-Command takes two optional arguements given below.
-1) min-links  - minimum number of links required to bring up the portchannel
-2) fallback - true/false. LACP fallback feature can be enabled / disabled.  When it is set to true, only one member port will be selected as active per portchannel during fallback mode. Refer https://github.com/sonic-net/SONiC/blob/master/doc/lag/LACP%20Fallback%20Feature%20for%20SONiC_v0.5.md for more details about fallback feature.
-3) fast-rate - true/false, default is false (slow). Option specifying the rate in which we'll ask our link partner to transmit LACPDU packets in 802.3ad mode. slow - request partner to transmit LACPDUs every 30 seconds, fast - request partner to transmit LACPDUs every 1 second. In slow mode 60-90 seconds needed to detect linkdown, in fast mode only 2-3 seconds.
-
-A port channel can be deleted only if it does not have any members or the members are already deleted. When a user tries to delete a port channel and the port channel still has one or more members that exist, the deletion of port channel is blocked.
+This command is used to add or delete a port channel. User can specify some attributes of the port channel when adding the port channel name.
 
 - Usage:
   ```
-  config portchannel (add | del) <portchannel_name> [--min-links <num_min_links>] [--fallback (true | false)  [--fast-rate (true | false)]
+  config portchannel (add | del) <portchannel_name> [--min-links <num_min_links>] [--fallback (true | false)] [--static (true | false)] [--fast-rate (true | false)] [--mix-speed (true | false)]
   ```
 
-- Example (Create the portchannel with name "PortChannel0011"):
+  Parameter:
+  - add, add a new port-channel name in the system.
+  - del, delete the port-channel name from the system.
+  - <portchannel_name>, the port channel name to be added or deleted. The syntax of port channel name is "PortChannel"+<suffix> where <suffix> range is 0..9999. For example, the name could be "PortChannel200".
+  - --min-links <num_min_links>, minimum number of links in the port channel before the port channel can be brought up and active. The default value is 1. The range from 1 to 1024.
+  - --fallback option, LACP fallback feature can be enabled/disabled. The default value is false.
+    - true, enable LACP fallback, which keep the port channel stays in "up" before receiving any LACP PDUs from peer DUT.
+    - false, disable LACP fallback, turn the port channel state to down when it does not receive the LACP PDUs from peer DUT.
+  - --lacp-key <num_lacp_key>, specify the exchanged lacp-key in LACP protocol, either auto or <num_lacp_key>. The default value is auto.
+    - auto, it concatenates "1"+<suffix> as the key. For example, <suffix> uses "200", the lacp_key would be "1200".
+    - <num_lacp_key>, the range of given number from 1 to 65535.
+  - --static, specify the port channel type, either true for static port channel or false for dynamic LACP port channel.
+  - --fast-rate, specify LACP rate mode.
+    - true, LACP fast rate mode, request partner to transmit LACPDUs every 1 second. LACP timeout is 3 seconds.
+    - false, LACP slow rate mode, request partner to transmit LACPDUs every 30 seconds. LACP timeout is 90 seconds.
+    - the default value is false.
+  - --mix-speed, specify whether the port channel is allowed to combine ports with different speeds into a single port channel. Default is false.
+  Note:
+  1. If any port is already member of a port channel and a user tries to add the same port to another port channel (without first deleting it from the current port channel), the command fails and error message is printed. In such cases, remove the member port from the current port channel and then add it to new port channel.
+  2. A port channel can be deleted only if it does not have any members or the members are already deleted. When a user tries to delete a port channel and the port channel still has one or more members that exist, the deletion of port channel is blocked.
+  3. Refer to https://github.com/Azure/SONiC/blob/master/doc/lag/LACP%20Fallback%20Feature%20for%20SONiC_v0.5.md for more details about the fallback feature.
+  4. Only --static option is required when adding static port channel. Extra option, such as lacp_key, fast-rate, min_link, or fallback, would cause an error.
+  5. The attributes of created port channel cannot be modified or changed.
+     - If port channel is already created and user tries to specify options to change port channel attributes, the command fails and error message is printed.
+
+Create a port-channel with name: "PortChannel200"
+
+- Example (Create the portchannel with name "PortChannel200"):
   ```
-  admin@sonic:~$ sudo config portchannel add PortChannel0011
+  admin@sonic:~$ sudo config portchannel add PortChannel200
   ```
 
 **config portchannel member**
@@ -8235,9 +8285,9 @@ This command adds or deletes a member port to/from the already created portchann
   config portchannel member (add | del) <portchannel_name> <member_portname>
   ```
 
-- Example (Add interface Ethernet4 as member of the portchannel "PortChannel0011"):
+- Example (Add interface Ethernet4 as member of the portchannel "PortChannel200"):
   ```
-  admin@sonic:~$ sudo config portchannel member add PortChannel0011 Ethernet4
+  admin@sonic:~$ sudo config portchannel member add PortChannel200 Ethernet4
   ```
 
 Go Back To [Beginning of the document](#) or [Beginning of this section](#portchannels)
@@ -8266,7 +8316,6 @@ This command displays the NVGRE tunnel configuration.
   -------------  --------
   tunnel_1       10.0.0.1
   ```
-
 **show nvgre-tunnel-map**
 
 This command displays the NVGRE tunnel map configuration.

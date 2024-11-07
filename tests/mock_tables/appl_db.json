@@ -121,7 +121,8 @@
         "tpid": "0x8100",
         "fec": "rs",
         "admin_status": "up",
-        "link_training": "off"
+        "link_training": "off",
+        "lacp_key": "123"
     },
     "PORT_TABLE:Ethernet116": {
         "index": "29",
@@ -134,7 +135,8 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "fec": "rs",
-        "admin_status": "up"
+        "admin_status": "up",
+        "lacp_key": "10002"
     },
     "PORT_TABLE:Ethernet120": {
         "index": "30",
@@ -147,7 +149,8 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "fec": "rs",
-        "admin_status": "up"
+        "admin_status": "up",
+        "lacp_key": ""
     },
     "PORT_TABLE:Ethernet124": {
         "index": "31",
@@ -160,7 +163,8 @@
         "mtu": "9100",
         "tpid": "0x8100",
         "fec": "auto",
-        "admin_status": "up"
+        "admin_status": "up",
+        "lacp_key": "10004"
     },
     "PORT_TABLE:Ethernet200": {
         "index": "200",

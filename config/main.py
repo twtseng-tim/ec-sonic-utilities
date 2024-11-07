@@ -984,10 +984,17 @@ def interface_is_in_vlan(vlan_member_table, interface_name):
 
 def interface_is_in_portchannel(portchannel_member_table, interface_name):
     """ Check if an interface is part of portchannel """
-    for _, intf in portchannel_member_table:
+    for portchannel_name, intf in portchannel_member_table:
         if intf == interface_name:
-            return True
+            return portchannel_name
 
+    return False
+
+def portchannel_is_mix_speed(config_db, portchannel_name):
+    """ Check if portchannel is mix-speed mode """
+    portchannel_data = config_db.get_entry("PORTCHANNEL", portchannel_name)
+    if "mix_speed" in portchannel_data.keys() and portchannel_data["mix_speed"] == "true":
+        return True
     return False
 
 def check_mirror_direction_config(v, direction):
@@ -2127,13 +2134,16 @@ def portchannel(db, ctx, namespace):
 
 @portchannel.command('add')
 @click.argument('portchannel_name', metavar='<portchannel_name>', required=True)
+@click.option('--lacp-key', help = "'auto' or integer (range from 1 to 65535)")
 @click.option('--min-links', default=1, type=click.IntRange(1,1024))
 @click.option('--fallback', default='false')
 @click.option('--fast-rate', default='false',
-              type=click.Choice(['true', 'false'],
-                                case_sensitive=False))
+        type=click.Choice(['true', 'false'],  case_sensitive=False))
+@click.option('--static', default='false', type=click.Choice(['true', 'false']),
+        help = "The lacp_key, fast_rate, min_link and fallback are not supported on static mode.")
+@click.option('--mix-speed', default='false', type=click.Choice(['true', 'false']))
 @click.pass_context
-def add_portchannel(ctx, portchannel_name, min_links, fallback, fast_rate):
+def add_portchannel(ctx, portchannel_name, lacp_key, min_links, fallback, static, fast_rate, mix_speed):
     """Add port channel"""
 
     fvs = {
@@ -2141,7 +2151,22 @@ def add_portchannel(ctx, portchannel_name, min_links, fallback, fast_rate):
         'mtu': '9100',
         'lacp_key': 'auto',
         'fast_rate': fast_rate.lower(),
+        'mix_speed': mix_speed
     }
+
+    if static == 'true':
+        fvs['static'] = 'true'
+        if lacp_key != None or min_links != 1 or fallback != 'false':
+            ctx.fail("The lacp_key, min_link and fallback are not supported on static mode.")
+    elif lacp_key != None:
+        if lacp_key == 'auto':
+            fvs['lacp_key'] = lacp_key
+        elif lacp_key.isdigit() and int(lacp_key) > 0 and int(lacp_key) < 65536:
+            fvs['lacp_key'] = lacp_key
+        else:
+            ctx.fail("lacp-key invalid, should be 'auto' or integer (range from 1 to 65535)")
+    else:
+        fvs['lacp_key'] = 'auto'
 
     if min_links != 0:
         fvs['min_links'] = str(min_links)
@@ -2253,7 +2278,7 @@ def add_portchannel_member(ctx, portchannel_name, port_name):
                 member_port_entry = db.get_entry('PORT', v)
                 port_entry = db.get_entry('PORT', port_name)
 
-                if member_port_entry is not None and port_entry is not None:
+                if member_port_entry is not None and port_entry is not None and not portchannel_is_mix_speed(db, portchannel_name):
                     member_port_speed = member_port_entry.get(PORT_SPEED)
 
                     port_speed = port_entry.get(PORT_SPEED) # TODO: MISSING CONSTRAINT IN YANG MODEL
@@ -4439,6 +4464,11 @@ def speed(ctx, interface_name, interface_speed, verbose):
         interface_name = interface_alias_to_name(config_db, interface_name)
         if interface_name is None:
             ctx.fail("'interface_name' is None!")
+
+    portchannel_member_table = config_db.get_table('PORTCHANNEL_MEMBER')
+    portchannel_name = interface_is_in_portchannel(portchannel_member_table, interface_name)
+    if portchannel_name is not False and not portchannel_is_mix_speed(config_db, portchannel_name):
+        ctx.fail("{} is member of {} which is not a mix-speed PortChannel. Configuration is not allowed!".format(interface_name, portchannel_name))
 
     log.log_info("'interface speed {} {}' executing...".format(interface_name, interface_speed))
 

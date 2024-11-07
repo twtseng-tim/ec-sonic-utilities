@@ -1075,18 +1075,8 @@
         "ifinfo.ifindex": "97"
     },
     "LAG_MEMBER_TABLE|PortChannel0003|Ethernet120": {
-        "runner.actor_lacpdu_info.state": "61",
-        "runner.state": "current",
-        "runner.partner_lacpdu_info.port": "1",
-        "runner.actor_lacpdu_info.port": "121",
-        "runner.selected": "true",
-        "runner.partner_lacpdu_info.state": "61",
         "ifinfo.dev_addr": "52:54:00:f2:e1:23",
-        "runner.partner_lacpdu_info.system": "16:0e:58:6f:3c:dd",
-        "link_watches.list.link_watch_0.up": "false",
-        "runner.actor_lacpdu_info.system": "52:54:00:f2:e1:23",
-        "runner.aggregator.selected": "true",
-        "runner.aggregator.id": "100",
+        "link_watches.list.link_watch_0.up": "true",
         "link.up": "true",
         "ifinfo.ifindex": "100"
     },
@@ -1095,6 +1085,7 @@
         "team_device.ifinfo.dev_addr": "52:54:00:f2:e1:23",
         "team_device.ifinfo.ifindex": "71",
         "setup.pid": "32",
+        "setup.runner_name": "lacp",
         "state": "ok",
         "runner.fast_rate": "false",
         "setup.kernel_team_mode_name": "loadbalance",
@@ -1105,26 +1096,26 @@
         "team_device.ifinfo.dev_addr": "52:54:00:f2:e1:23",
         "team_device.ifinfo.ifindex": "72",
         "setup.pid": "40",
+        "setup.runner_name": "lacp",
         "state": "ok",
         "runner.fast_rate": "false",
         "setup.kernel_team_mode_name": "loadbalance",
         "runner.active": "true"
     },
     "LAG_TABLE|PortChannel0003": {
-        "runner.fallback": "false",
         "team_device.ifinfo.dev_addr": "52:54:00:f2:e1:23",
         "team_device.ifinfo.ifindex": "73",
         "setup.pid": "48",
+        "setup.runner_name": "loadbalance",
         "state": "ok",
-        "runner.fast_rate": "false",
-        "setup.kernel_team_mode_name": "loadbalance",
-        "runner.active": "true"
+        "setup.kernel_team_mode_name": "loadbalance"
     },
     "LAG_TABLE|PortChannel0004": {
         "runner.fallback": "false",
         "team_device.ifinfo.dev_addr": "52:54:00:f2:e1:23",
         "team_device.ifinfo.ifindex": "74",
         "setup.pid": "56",
+        "setup.runner_name": "lacp",
         "state": "ok",
         "runner.fast_rate": "false",
         "setup.kernel_team_mode_name": "loadbalance",

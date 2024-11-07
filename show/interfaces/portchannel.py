@@ -28,6 +28,11 @@ PORT_CHANNEL_APPL_TABLE_PREFIX = "LAG_TABLE:"
 PORT_CHANNEL_CFG_TABLE_PREFIX = "PORTCHANNEL|"
 PORT_CHANNEL_STATE_TABLE_PREFIX = "LAG_TABLE|"
 PORT_CHANNEL_STATUS_FIELD = "oper_status"
+PORT_CHANNEL_LACP_KEY_FIELD = "lacp_key"
+PORT_CHANNEL_FAST_RATE_FIELD = "fast_rate"
+PORT_CHANNEL_MIX_SPEED_FIELS = "mix_speed"
+
+PORT_APPL_TABLE_PREFIX = "PORT_TABLE:"
 
 PORT_CHANNEL_MEMBER_APPL_TABLE_PREFIX = "LAG_MEMBER_TABLE:"
 PORT_CHANNEL_MEMBER_STATE_TABLE_PREFIX = "LAG_MEMBER_TABLE|"
@@ -73,6 +78,34 @@ class Teamshow(object):
         full_table_id = PORT_CHANNEL_MEMBER_APPL_TABLE_PREFIX + port_channel_name + ":" + port_name
         return self.db.get(self.db.APPL_DB, full_table_id, PORT_CHANNEL_MEMBER_STATUS_FIELD)
 
+    def get_portchannel_admin_key(self, port_channel_name):
+        """
+            Get port channel admin lacp key from database.
+        """
+        full_table_id = PORT_CHANNEL_CFG_TABLE_PREFIX + port_channel_name
+        return self.db.get(self.db.CONFIG_DB, full_table_id, PORT_CHANNEL_LACP_KEY_FIELD)
+
+    def get_portchannel_fast_rate(self, port_channel_name):
+        """
+            Get port channel fast rate from database.
+        """
+        full_table_id = PORT_CHANNEL_CFG_TABLE_PREFIX + port_channel_name
+        return self.db.get(self.db.CONFIG_DB, full_table_id, PORT_CHANNEL_FAST_RATE_FIELD)
+
+    def get_portchannel_oper_key(self, port_name):
+        """
+            Get port channel oper lacp key from database.
+        """
+        full_table_id = PORT_APPL_TABLE_PREFIX + port_name
+        return self.db.get(self.db.APPL_DB, full_table_id, PORT_CHANNEL_LACP_KEY_FIELD)
+
+    def get_portchannel_mix_speed(self, port_channel_name):
+        """
+            Get port channel admin lacp key from database.
+        """
+        full_table_id = PORT_CHANNEL_CFG_TABLE_PREFIX + port_channel_name
+        return self.db.get(self.db.CONFIG_DB, full_table_id, PORT_CHANNEL_MIX_SPEED_FIELS)
+
     def get_team_id(self, team):
         """
             Skip the 'PortChannel' prefix and extract the team id.
@@ -105,10 +138,21 @@ class Teamshow(object):
                 info['protocol'] = 'N/A'
                 self.summary[team_id] = info
                 self.summary[team_id]['ports'] = ''
+                self.summary[team_id]['admin_key'] = ''
+                self.summary[team_id]['oper_key'] = ''
+                self.summary[team_id]['fast_rate'] = ''
+                self.summary[team_id]['mix_speed'] = False
                 continue
             state = self.teamsraw[team_id]
-            info['protocol'] = "LACP"
-            info['protocol'] += "(A)" if state['runner.active'] == "true" else '(I)'
+            if state['setup.runner_name'] == 'lacp':
+                info['protocol'] = "LACP"
+                info['protocol'] += "(A)" if state['runner.active'] == "true" else '(I)'
+                fast_rate = self.get_portchannel_fast_rate(team)
+                info['fast_rate'] = fast_rate if fast_rate == "true" else "false"
+            else:
+                info['protocol'] = "NONE"
+                info['protocol'] += "(-)"
+                info['fast_rate'] = "N/A"
 
             portchannel_status = self.get_portchannel_status(team)
             if portchannel_status is None:
@@ -121,15 +165,27 @@ class Teamshow(object):
                 info['protocol'] += '(N/A)'
 
             info['ports'] = ""
+            info['oper_key'] = 'N/A'
+
+            admin_key = self.get_portchannel_admin_key(team)
+            info['admin_key'] = admin_key if admin_key else 'N/A'
+
+            mix_speed = self.get_portchannel_mix_speed(team) == "true"
+            info['mix_speed'] = mix_speed
+
             member_keys = self.db.keys(self.db.STATE_DB, PORT_CHANNEL_MEMBER_STATE_TABLE_PREFIX+team+'|*')
-            if member_keys is None:
+            if not member_keys:
                 info['ports'] = 'N/A'
             else:
                 ports = [key[len(PORT_CHANNEL_MEMBER_STATE_TABLE_PREFIX+team+'|'):] for key in member_keys]
+                break_line = False
                 for port in ports:
                     status = self.get_portchannel_member_status(team, port)
                     pstate = self.db.get_all(self.db.STATE_DB, PORT_CHANNEL_MEMBER_STATE_TABLE_PREFIX+team+'|'+port)
-                    selected = True if pstate['runner.aggregator.selected'] == "true" else False
+                    if state['setup.runner_name'] == 'lacp':
+                        selected = True if pstate['runner.aggregator.selected'] == "true" else False
+                    else:
+                        selected = True if pstate['link_watches.list.link_watch_0.up'] == "true" else False
                     if clicommon.get_interface_naming_mode() == "alias":
                         alias = clicommon.InterfaceAliasConverter().name_to_alias(port)
                         info["ports"] += alias + "("
@@ -139,6 +195,12 @@ class Teamshow(object):
                     if status is None or (status == "enabled" and not selected) or (status == "disabled" and selected):
                         info["ports"] += "*"
                     info["ports"] += ") "
+                    if break_line:
+                        info["ports"] += "\n"
+                    break_line ^= 1
+                oper_key = self.get_portchannel_oper_key(next(iter(ports)))
+                if oper_key:
+                    info['oper_key'] = oper_key
 
             self.summary[team_id] = info
 
@@ -147,12 +209,15 @@ class Teamshow(object):
             Display the portchannel (team) summary.
         """
         print("Flags: A - active, I - inactive, Up - up, Dw - Down, N/A - not available,\n"
-              "       S - selected, D - deselected, * - not synced")
+              "       S - selected, D - deselected, * - not synced,\n"
+              "       M - mixed speed")
 
-        header = ['No.', 'Team Dev', 'Protocol', 'Ports']
+        header = ['No.', 'Team Dev', 'Protocol', 'Ports', 'Oper Key', 'Admin Key', 'Fast Rate']
         output = []
         for team_id in natsorted(self.summary):
-            output.append([team_id, 'PortChannel'+team_id, self.summary[team_id]['protocol'], self.summary[team_id]['ports']])
+            output.append([team_id, 'PortChannel'+team_id+("(M)"if self.summary[team_id]['mix_speed'] else ""), \
+            self.summary[team_id]['protocol'], self.summary[team_id]['ports'], \
+            self.summary[team_id]['oper_key'], self.summary[team_id]['admin_key'], self.summary[team_id]['fast_rate']])
         print(tabulate(output, header))
 
 # 'portchannel' subcommand ("show interfaces portchannel")
