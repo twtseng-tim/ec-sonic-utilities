@@ -191,7 +191,7 @@ def get_neighbor_dict_from_table(db, table_name):
 def run_bgp_command(vtysh_cmd, bgp_namespace=multi_asic.DEFAULT_NAMESPACE, vtysh_shell_cmd=constants.VTYSH_COMMAND):
     bgp_instance_id = []
     output = None
-    if bgp_namespace is not multi_asic.DEFAULT_NAMESPACE:
+    if bgp_namespace != multi_asic.DEFAULT_NAMESPACE:
         bgp_instance_id = ['-n', str(multi_asic.get_asic_id_from_name(bgp_namespace))]
 
     cmd = ['sudo', vtysh_shell_cmd] + bgp_instance_id + ['-c', vtysh_cmd]
@@ -223,7 +223,7 @@ def run_bgp_show_command(vtysh_cmd, bgp_namespace=multi_asic.DEFAULT_NAMESPACE):
                                 intf_name  = info[i]['nexthops'][j]['interfaceName']
                                 alias = iface_alias_converter.name_to_alias(intf_name)
                                 if alias is not None:
-                                    info[i]['nexthops'][j]['interfaceName'] = alias 
+                                    info[i]['nexthops'][j]['interfaceName'] = alias
             output= json.dumps(route_info)
     return output
 
@@ -289,6 +289,11 @@ def display_bgp_summary(bgp_summary, af):
         af: IPV4 or IPV6
 
     '''
+
+    if bgp_summary == {}:
+        click.echo("No BGP neighbors found")
+        return
+
     headers = ["Neighbhor", "V", "AS", "MsgRcvd", "MsgSent", "TblVer",
                "InQ", "OutQ", "Up/Down", "State/PfxRcd", "NeighborName"]
 
@@ -344,9 +349,9 @@ def process_bgp_summary_json(bgp_summary, cmd_output, device, has_bgp_neighbors=
             bgp_summary['ribMemory'] = bgp_summary.get(
                 'ribMemory', 0) + cmd_output['ribMemory']
             bgp_summary['peerGroupCount'] = bgp_summary.get(
-                'peerGroupCount', 0) + cmd_output['peerGroupCount']
+                'peerGroupCount', 0) + cmd_output.get('peerGroupCount', 0)
             bgp_summary['peerGroupMemory'] = bgp_summary.get(
-                'peerGroupMemory', 0) + cmd_output['peerGroupMemory']
+                'peerGroupMemory', 0) + cmd_output.get('peerGroupMemory', 0)
         else:
             # when there are no bgp neighbors, all values are zero
             bgp_summary['peerCount'] = bgp_summary.get(
@@ -402,7 +407,7 @@ def process_bgp_summary_json(bgp_summary, cmd_output, device, has_bgp_neighbors=
                 bgp_summary.setdefault('peers', []).append(peers)
         else:
             if 'peers' not in bgp_summary:
-                bgp_summary['peers'] = []             
+                bgp_summary['peers'] = []
     except KeyError as e:
         ctx = click.get_current_context()
         ctx.fail("{} missing in the bgp_summary".format(e.args[0]))
