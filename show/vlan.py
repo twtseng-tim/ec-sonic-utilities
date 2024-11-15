@@ -41,15 +41,11 @@ def get_vlan_ports(ctx, vlan):
     # This should be fixed by cli code autogeneration tool
     # and we won't need this specific approach with
     # VlanBrief.COLUMNS anymore.
-    for key in natsorted(list(vlan_ports_data.keys())):
-        ports_key, ports_value = key
-        if vlan != ports_key:
-            continue
-
-        if clicommon.get_interface_naming_mode() == "alias":
-            ports_value = iface_alias_converter.name_to_alias(ports_value)
-
-        vlan_ports.append(ports_value)
+    if vlan_ports_data.get(vlan) != None:
+        for port in natsorted(list(vlan_ports_data[vlan].keys())):
+            if clicommon.get_interface_naming_mode() == "alias":
+                port = iface_alias_converter.name_to_alias(port)
+            vlan_ports.append(port)
 
     return '\n'.join(vlan_ports)
 
@@ -65,13 +61,10 @@ def get_vlan_ports_tagging(ctx, vlan):
     # This should be fixed by cli code autogeneration tool
     # and we won't need this specific approach with
     # VlanBrief.COLUMNS anymore.
-    for key in natsorted(list(vlan_ports_data.keys())):
-        ports_key, ports_value = key
-        if vlan != ports_key:
-            continue
-
-        tagging_value = vlan_ports_data[key]["tagging_mode"]
-        vlan_ports_tagging.append(tagging_value)
+    if vlan_ports_data.get(vlan) != None:
+        for port in natsorted(list(vlan_ports_data[vlan].keys())):
+            tagging_value = vlan_ports_data[vlan][port]["tagging_mode"]
+            vlan_ports_tagging.append(tagging_value)
 
     return '\n'.join(vlan_ports_tagging)
 
@@ -125,7 +118,12 @@ def brief(db, verbose):
     # Fetching data from config db for VLAN, VLAN_INTERFACE and VLAN_MEMBER
     vlan_data = db.cfgdb.get_table('VLAN')
     vlan_ip_data = db.cfgdb.get_table('VLAN_INTERFACE')
-    vlan_ports_data = db.cfgdb.get_table('VLAN_MEMBER')
+    vlan_ports_data = {}
+    for key, value in db.cfgdb.get_table('VLAN_MEMBER').items():
+        vlan, port = key
+        if vlan_ports_data.get(vlan) == None:
+            vlan_ports_data[vlan] = {}
+        vlan_ports_data[vlan][port] = value
     iface_alias_converter = clicommon.InterfaceAliasConverter(db)
     vlan_cfg = (vlan_data, vlan_ip_data, vlan_ports_data, iface_alias_converter)
 
