@@ -174,7 +174,7 @@
 * [VLAN & FDB](#vlan--fdb)
   * [VLAN](#vlan)
     * [VLAN show commands](#vlan-show-commands)
-    * [VLAN Config commands](#vlan-config-commands)
+    * [VLAN config commands](#vlan-config-commands)
   * [FDB](#fdb)
     * [FDB show commands](#fdb-show-commands)
 * [VxLAN & Vnet](#vxlan--vnet)
@@ -10784,14 +10784,18 @@ This command is to add or delete a member port into the already created vlan.
   config vlan member add/del [-u|--untagged] <vlan_id> <member_portname>
   ```
 
-*NOTE: Adding the -u or --untagged flag will set the member in "untagged" mode*
+*NOTE:*
+  * Adding the -u or --untagged flag will set the member in "untagged" mode
+  * Not allow to add ethernet port / port channel with L3 configuration to VLAN.
 
 
-- Example:
+- Example (Add Ethernet0 as member of the vlan 100):
   ```
   admin@sonic:~$ sudo config vlan member add 100 Ethernet0
   This command will add Ethernet0 as member of the vlan 100
-
+  ```
+- Example (Add Ethernet4 as member of the vlan 100):
+  ```
   admin@sonic:~$ sudo config vlan member add 100 Ethernet4
   This command will add Ethernet4 as member of the vlan 100.
   ```
